@@ -12,32 +12,41 @@ def home(request):
             return redirect('adicionar_relatorio')
         
         # Debug - Mostrar estrutura dos dados
-        print("=== DADOS DO RELATÓRIO ===")
-        print(type(relatorio.dados))
-        print(relatorio.dados)
-        print("==========================")
+        print("\n=== ESTRUTURA DOS DADOS ===")
+        print("Tipo:", type(relatorio.dados))
+        print("Chaves:", relatorio.dados.keys() if isinstance(relatorio.dados, dict) else "Não é um dicionário")
+        print("Conteúdo:", relatorio.dados)
+        print("==========================\n")
         
         dados = relatorio.dados
         
-        # Assumindo que os dados estão em uma lista de chamados
-        if isinstance(dados, list):
-            items = dados
-        elif isinstance(dados, dict):
-            # Se for um dicionário, procura por uma chave que contenha os chamados
-            items = dados.get('Chamados') or dados.get('chamados') or dados.get('items') or []
+        # Se os dados estiverem em uma chave específica do dicionário
+        if isinstance(dados, dict):
+            # Tenta diferentes possíveis chaves onde os chamados podem estar
+            items = (dados.get('Registros') or 
+                    dados.get('registros') or 
+                    dados.get('Chamados') or 
+                    dados.get('chamados') or 
+                    dados.get('Data') or 
+                    dados.get('data') or 
+                    dados.get('Items') or 
+                    dados.get('items') or
+                    [])
+            
+            print("\n=== ITEMS ENCONTRADOS ===")
+            print("Tipo dos items:", type(items))
+            if items:
+                print("Primeiro item:", items[0])
+            else:
+                print("Nenhum item encontrado")
+            print("========================\n")
         else:
             items = []
         
         if not items:
-            print("Nenhum item encontrado nos dados")
             return render(request, 'relatorios/error.html', {
-                'error': f'Nenhum chamado encontrado no relatório. Estrutura: {type(dados)}'
+                'error': f'Nenhum chamado encontrado no relatório. Estrutura dos dados: {dados.keys() if isinstance(dados, dict) else type(dados)}'
             })
-        
-        # Debug - Mostrar primeiro item
-        print("=== PRIMEIRO ITEM ===")
-        print(items[0] if items else "Sem items")
-        print("====================")
         
         status_count = Counter()
         categoria_count = Counter()

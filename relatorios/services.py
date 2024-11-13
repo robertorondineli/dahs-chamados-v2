@@ -54,7 +54,7 @@ class DeskAPI:
                 'Total': '1000'
             }
 
-            print("=== REQUISIÇÃO DO RELATÓRIO ===")
+            print("\n=== REQUISIÇÃO DO RELATÓRIO ===")
             print(f"Headers: {headers}")
             print(f"Data: {data}")
             
@@ -65,15 +65,12 @@ class DeskAPI:
             )
 
             print(f"Status Code: {response.status_code}")
-            print(f"Response: {response.text[:500]}...")  # Mostra apenas os primeiros 500 caracteres
-            print("==============================")
+            print("Resposta da API:")
+            print(response.text)
+            print("==============================\n")
 
             if response.status_code == 200:
-                try:
-                    return response.json()
-                except json.JSONDecodeError:
-                    print("Erro ao decodificar JSON da resposta")
-                    return None
+                return response.json()
             return None
         except Exception as e:
             print(f"Erro ao obter relatório: {str(e)}")
