@@ -1,9 +1,15 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import Relatorio
-from collections import Counter
-from .services import DeskAPI
+from collections import Counter, defaultdict
+from datetime import datetime
 import json
+
+def calcular_sla(chamado):
+    # Ajuste conforme sua lógica de SLA
+    tempo_resolucao = chamado.get('TempoResolucao', 0)
+    sla_esperado = chamado.get('SLAEsperado', 24)  # 24 horas como padrão
+    return tempo_resolucao <= sla_esperado
 
 def home(request):
     try:
@@ -12,59 +18,63 @@ def home(request):
             return redirect('adicionar_relatorio')
         
         dados = relatorio.dados
+        chamados = dados.get('root', [])
         
-        # Os chamados estão dentro da chave 'root'
-        if isinstance(dados, dict) and 'root' in dados:
-            items = dados['root']
+        # === SLA ===
+        total_chamados = len(chamados)
+        chamados_no_sla = sum(1 for c in chamados if calcular_sla(c))
+        sla_data = {
+            'dentro': (chamados_no_sla / total_chamados * 100) if total_chamados > 0 else 0,
+            'fora': ((total_chamados - chamados_no_sla) / total_chamados * 100) if total_chamados > 0 else 0
+        }
+
+        # === Prioridades ===
+        prioridade_count = Counter(c.get('Prioridade', 'Não definida') for c in chamados)
+
+        # === Tempo Médio de Resolução ===
+        tempos_resolucao = [float(c.get('TempoResolucao', 0)) for c in chamados if c.get('TempoResolucao')]
+        tempo_medio = sum(tempos_resolucao) / len(tempos_resolucao) if tempos_resolucao else 0
+
+        # === Produtividade por Operador ===
+        operador_count = Counter(c.get('Operador', 'Não atribuído') for c in chamados)
+
+        # === Tendência de Chamados ===
+        chamados_por_data = defaultdict(lambda: {'abertos': 0, 'fechados': 0})
+        for chamado in chamados:
+            data_abertura = chamado.get('DataAbertura', '').split('T')[0]
+            data_fechamento = chamado.get('DataFechamento', '').split('T')[0]
             
-            print("\n=== DADOS DO RELATÓRIO ===")
-            print("Total de chamados:", len(items))
-            if items:
-                print("Exemplo do primeiro chamado:", items[0])
-            print("==========================\n")
-            
-            status_count = Counter()
-            categoria_count = Counter()
-            prioridade_count = Counter()
-            datas = set()
-            
-            for item in items:
-                # Ajustando para as chaves corretas do seu JSON
-                status = str(item.get('Status', 'Não definido'))
-                categoria = str(item.get('Categoria', 'Não definida'))
-                prioridade = str(item.get('Prioridade', 'Não definida'))
-                data = str(item.get('DataAbertura', '')).split('T')[0] if item.get('DataAbertura') else ''
-                
-                status_count[status] += 1
-                categoria_count[categoria] += 1
-                prioridade_count[prioridade] += 1
-                if data:
-                    datas.add(data)
-            
-            datas_disponiveis = sorted(list(datas)) if datas else []
-            data_selecionada = request.GET.get('data', datas_disponiveis[-1] if datas_disponiveis else None)
-            
-            # Adiciona informações do relatório ao contexto
-            contexto = {
-                'relatorio': relatorio,
-                'nome_relatorio': dados.get('NomeRelatorio', 'Relatório de Chamados'),
-                'total_registros': dados.get('total', 0),
-                'datas_disponiveis': datas_disponiveis,
-                'data_selecionada': data_selecionada,
-                'status_labels': list(status_count.keys()),
-                'status_data': list(status_count.values()),
-                'categoria_labels': list(categoria_count.keys()),
-                'categoria_data': list(categoria_count.values()),
-                'prioridade_labels': list(prioridade_count.keys()),
-                'prioridade_data': list(prioridade_count.values()),
-                'total_chamados': len(items)
-            }
-            
-            return render(request, 'relatorios/dashboard.html', contexto)
-        else:
-            return render(request, 'relatorios/error.html', {
-                'error': f'Nenhum chamado encontrado no relatório. Estrutura dos dados: {dados.keys() if isinstance(dados, dict) else type(dados)}'
-            })
+            if data_abertura:
+                chamados_por_data[data_abertura]['abertos'] += 1
+            if data_fechamento:
+                chamados_por_data[data_fechamento]['fechados'] += 1
+
+        # Ordenar datas
+        datas = sorted(chamados_por_data.keys())
+        tendencia_data = {
+            'datas': datas,
+            'abertos': [chamados_por_data[d]['abertos'] for d in datas],
+            'fechados': [chamados_por_data[d]['fechados'] for d in datas]
+        }
+
+        # === Categorias ===
+        categoria_count = Counter(c.get('Categoria', 'Não definida') for c in chamados)
+
+        contexto = {
+            'sla_data': sla_data,
+            'prioridade_labels': list(prioridade_count.keys()),
+            'prioridade_data': list(prioridade_count.values()),
+            'tempo_medio_resolucao': round(tempo_medio, 2),
+            'operador_labels': list(operador_count.keys()),
+            'operador_data': list(operador_count.values()),
+            'tendencia_data': tendencia_data,
+            'categoria_labels': list(categoria_count.keys()),
+            'categoria_data': list(categoria_count.values()),
+            'total_chamados': total_chamados,
+            'ultima_atualizacao': relatorio.data_importacao
+        }
+        
+        return render(request, 'relatorios/dashboard.html', contexto)
         
     except Exception as e:
         print(f"Erro ao processar dashboard: {str(e)}")

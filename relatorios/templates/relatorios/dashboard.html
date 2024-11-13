@@ -1,69 +1,65 @@
 {% extends 'base/base.html' %}
 
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
-            <h2>{{ nome_relatorio }}</h2>
-            <p class="text-muted">Última atualização: {{ relatorio.data_importacao|date:"d/m/Y H:i" }}</p>
+            <h2>Dashboard de Chamados</h2>
+            <p class="text-muted">Atualizado em: {{ ultima_atualizacao|date:"d/m/Y H:i" }}</p>
         </div>
     </div>
 
-    <!-- Cards de Resumo -->
+    <!-- Primeira Linha -->
     <div class="row mb-4">
+        <!-- SLA -->
         <div class="col-md-4">
-            <div class="card bg-primary text-white">
+            <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Total de Chamados</h5>
-                    <h2 class="card-text">{{ total_chamados }}</h2>
+                    <h5 class="card-title">SLA</h5>
+                    <canvas id="slaChart"></canvas>
                 </div>
             </div>
         </div>
-        
-        {% if datas_disponiveis %}
+
+        <!-- Tempo Médio de Resolução -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Tempo Médio de Resolução</h5>
+                    <div class="text-center">
+                        <h2>{{ tempo_medio_resolucao }} horas</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total de Chamados -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total de Chamados</h5>
+                    <div class="text-center">
+                        <h2>{{ total_chamados }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda Linha -->
+    <div class="row mb-4">
+        <!-- Tendência de Chamados -->
         <div class="col-md-8">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Filtrar por Data</h5>
-                    <form method="GET" class="d-flex">
-                        <select name="data" class="form-select me-2">
-                            {% for data in datas_disponiveis %}
-                                <option value="{{ data }}" {% if data == data_selecionada %}selected{% endif %}>
-                                    {{ data }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <button type="submit" class="btn btn-primary">Filtrar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
-    <div class="row">
-        <!-- Gráfico de Status -->
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Status dos Chamados</h5>
-                    <canvas id="statusChart"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Gráfico de Categorias -->
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Categorias</h5>
-                    <canvas id="categoriaChart"></canvas>
+                    <h5 class="card-title">Tendência de Chamados</h5>
+                    <canvas id="tendenciaChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Gráfico de Prioridades -->
-        <div class="col-md-4 mb-4">
+        <!-- Prioridades -->
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Prioridades</h5>
@@ -72,44 +68,60 @@
             </div>
         </div>
     </div>
+
+    <!-- Terceira Linha -->
+    <div class="row">
+        <!-- Produtividade por Operador -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Produtividade por Operador</h5>
+                    <canvas id="operadorChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categorias -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Categorias</h5>
+                    <canvas id="categoriaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-// Função para gerar cores aleatórias
-function generateColors(count) {
-    const colors = [];
-    for (let i = 0; i < count; i++) {
-        colors.push(`hsl(${(i * 360) / count}, 70%, 50%)`);
-    }
-    return colors;
-}
-
-// Gráfico de Status
-const statusCtx = document.getElementById('statusChart').getContext('2d');
-new Chart(statusCtx, {
-    type: 'pie',
+// SLA Chart
+new Chart(document.getElementById('slaChart'), {
+    type: 'doughnut',
     data: {
-        labels: {{ status_labels|safe }},
+        labels: ['Dentro do SLA', 'Fora do SLA'],
         datasets: [{
-            data: {{ status_data|safe }},
-            backgroundColor: generateColors({{ status_labels|length }})
+            data: [{{ sla_data.dentro }}, {{ sla_data.fora }}],
+            backgroundColor: ['#4CAF50', '#F44336']
         }]
     }
 });
 
-// Gráfico de Categorias
-const categoriaCtx = document.getElementById('categoriaChart').getContext('2d');
-new Chart(categoriaCtx, {
-    type: 'bar',
+// Tendência Chart
+new Chart(document.getElementById('tendenciaChart'), {
+    type: 'line',
     data: {
-        labels: {{ categoria_labels|safe }},
+        labels: {{ tendencia_data.datas|safe }},
         datasets: [{
-            label: 'Quantidade',
-            data: {{ categoria_data|safe }},
-            backgroundColor: '#36A2EB'
+            label: 'Chamados Abertos',
+            data: {{ tendencia_data.abertos|safe }},
+            borderColor: '#2196F3',
+            fill: false
+        }, {
+            label: 'Chamados Fechados',
+            data: {{ tendencia_data.fechados|safe }},
+            borderColor: '#4CAF50',
+            fill: false
         }]
     },
     options: {
@@ -121,16 +133,55 @@ new Chart(categoriaCtx, {
     }
 });
 
-// Gráfico de Prioridades
-const prioridadeCtx = document.getElementById('prioridadeChart').getContext('2d');
-new Chart(prioridadeCtx, {
-    type: 'doughnut',
+// Prioridade Chart
+new Chart(document.getElementById('prioridadeChart'), {
+    type: 'pie',
     data: {
         labels: {{ prioridade_labels|safe }},
         datasets: [{
             data: {{ prioridade_data|safe }},
-            backgroundColor: generateColors({{ prioridade_labels|length }})
+            backgroundColor: ['#F44336', '#FF9800', '#FFC107', '#4CAF50']
         }]
+    }
+});
+
+// Operador Chart
+new Chart(document.getElementById('operadorChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ operador_labels|safe }},
+        datasets: [{
+            label: 'Chamados Atendidos',
+            data: {{ operador_data|safe }},
+            backgroundColor: '#2196F3'
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Categoria Chart
+new Chart(document.getElementById('categoriaChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ categoria_labels|safe }},
+        datasets: [{
+            label: 'Quantidade',
+            data: {{ categoria_data|safe }},
+            backgroundColor: '#9C27B0'
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
     }
 });
 </script>
