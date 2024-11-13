@@ -1,0 +1,15 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="alert alert-danger mt-4">
+        <h4 class="alert-heading">Erro!</h4>
+        <p>{{ error }}</p>
+        <hr>
+        <p class="mb-0">
+            <a href="{% url 'adicionar_relatorio' %}" class="btn btn-primary">Adicionar Novo Relatório</a>
+            <a href="{% url 'home' %}" class="btn btn-secondary">Voltar para Home</a>
+        </p>
+    </div>
+</div>
+{% endblock %} 

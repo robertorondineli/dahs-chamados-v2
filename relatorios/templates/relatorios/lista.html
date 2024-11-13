@@ -1,0 +1,25 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Relatórios Importados</h2>
+    
+    <div class="row mt-4">
+        {% for relatorio in relatorios %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Relatório {{ relatorio.chave }}</h5>
+                    <p class="card-text">Importado em: {{ relatorio.data_importacao|date:"d/m/Y H:i" }}</p>
+                    <a href="{% url 'dashboard' relatorio.id %}" class="btn btn-primary">Ver Dashboard</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <p>Nenhum relatório importado ainda.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

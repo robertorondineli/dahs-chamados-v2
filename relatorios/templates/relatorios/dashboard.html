@@ -1,0 +1,130 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>Dashboard de Chamados</h2>
+        </div>
+        <div class="col-md-6">
+            <form method="GET" class="form-inline justify-content-end">
+                <div class="input-group">
+                    <label class="input-group-text" for="data">Data:</label>
+                    <select class="form-select" name="data" id="data" onchange="this.form.submit()">
+                        {% for data in datas_disponiveis %}
+                            <option value="{{ data }}" {% if data == data_selecionada %}selected{% endif %}>
+                                {{ data }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total de Chamados</h5>
+                    <h2 class="card-text">{{ total_chamados }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Gráfico de Status -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Status dos Chamados</h5>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico de Categorias -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Categorias</h5>
+                    <canvas id="categoriaChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico de Prioridades -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Prioridades</h5>
+                    <canvas id="prioridadeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Função para gerar cores aleatórias
+function generateColors(count) {
+    const colors = [];
+    for (let i = 0; i < count; i++) {
+        colors.push(`hsl(${(i * 360) / count}, 70%, 50%)`);
+    }
+    return colors;
+}
+
+// Gráfico de Status
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'pie',
+    data: {
+        labels: {{ status_labels|safe }},
+        datasets: [{
+            data: {{ status_data|safe }},
+            backgroundColor: generateColors({{ status_labels|length }})
+        }]
+    }
+});
+
+// Gráfico de Categorias
+const categoriaCtx = document.getElementById('categoriaChart').getContext('2d');
+new Chart(categoriaCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ categoria_labels|safe }},
+        datasets: [{
+            label: 'Quantidade',
+            data: {{ categoria_data|safe }},
+            backgroundColor: '#36A2EB'
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gráfico de Prioridades
+const prioridadeCtx = document.getElementById('prioridadeChart').getContext('2d');
+new Chart(prioridadeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ prioridade_labels|safe }},
+        datasets: [{
+            data: {{ prioridade_data|safe }},
+            backgroundColor: generateColors({{ prioridade_labels|length }})
+        }]
+    }
+});
+</script>
+{% endblock %} 
