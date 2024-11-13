@@ -17,14 +17,21 @@ class DeskAPI:
             }
             data = {'PublicKey': self.PUBLIC_KEY}
             
+            print("=== REQUISIÇÃO DE AUTENTICAÇÃO ===")
+            print(f"Headers: {headers}")
+            print(f"Data: {data}")
+            
             response = requests.post(
                 f'{self.BASE_URL}/Login/autenticar',
                 headers=headers,
                 json=data
             )
             
+            print(f"Status Code: {response.status_code}")
+            print(f"Response: {response.text}")
+            print("================================")
+            
             if response.status_code == 200:
-                # A API retorna o token como string entre aspas
                 self.token = response.text.strip('"')
                 return True
             return False
@@ -39,7 +46,7 @@ class DeskAPI:
                     return None
 
             headers = {
-                'Authorization': self.token,  # Removido o 'Bearer ' pois parece não ser necessário
+                'Authorization': self.token,
                 'Content-Type': 'application/json'
             }
             data = {
@@ -47,23 +54,25 @@ class DeskAPI:
                 'Total': '1000'
             }
 
-            print(f"Headers do relatório: {headers}")  # Debug
-            print(f"Data do relatório: {data}")  # Debug
-
+            print("=== REQUISIÇÃO DO RELATÓRIO ===")
+            print(f"Headers: {headers}")
+            print(f"Data: {data}")
+            
             response = requests.post(
                 f'{self.BASE_URL}/Relatorios/imprimir',
                 headers=headers,
                 json=data
             )
 
-            print(f"Status Code Relatório: {response.status_code}")
-            print(f"Response Text Relatório: {response.text}")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response: {response.text[:500]}...")  # Mostra apenas os primeiros 500 caracteres
+            print("==============================")
 
             if response.status_code == 200:
                 try:
                     return response.json()
                 except json.JSONDecodeError:
-                    print("Erro ao decodificar JSON do relatório")
+                    print("Erro ao decodificar JSON da resposta")
                     return None
             return None
         except Exception as e:
