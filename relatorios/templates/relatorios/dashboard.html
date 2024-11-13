@@ -9,46 +9,50 @@
         </div>
     </div>
 
-    <!-- Primeira Linha -->
+    <!-- Primeira Linha: SLAs -->
     <div class="row mb-4">
-        <!-- SLA -->
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">SLA</h5>
-                    <canvas id="slaChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tempo Médio de Resolução -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Tempo Médio de Resolução</h5>
-                    <div class="text-center">
-                        <h2>{{ tempo_medio_resolucao }} horas</h2>
+                    <h5 class="card-title">SLA de Primeiro Atendimento</h5>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-success" 
+                             role="progressbar" 
+                             style="width: {{ sla_percentuais.sla1.ok }}%">
+                            {{ sla_percentuais.sla1.ok|floatformat:1 }}% Dentro
+                        </div>
+                        <div class="progress-bar bg-danger" 
+                             role="progressbar" 
+                             style="width: {{ sla_percentuais.sla1.nok }}%">
+                            {{ sla_percentuais.sla1.nok|floatformat:1 }}% Fora
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Total de Chamados -->
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Total de Chamados</h5>
-                    <div class="text-center">
-                        <h2>{{ total_chamados }}</h2>
+                    <h5 class="card-title">SLA de Resolução</h5>
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-success" 
+                             role="progressbar" 
+                             style="width: {{ sla_percentuais.sla2.ok }}%">
+                            {{ sla_percentuais.sla2.ok|floatformat:1 }}% Dentro
+                        </div>
+                        <div class="progress-bar bg-danger" 
+                             role="progressbar" 
+                             style="width: {{ sla_percentuais.sla2.nok }}%">
+                            {{ sla_percentuais.sla2.nok|floatformat:1 }}% Fora
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Segunda Linha -->
+    <!-- Segunda Linha: Tendência e Prioridades -->
     <div class="row mb-4">
-        <!-- Tendência de Chamados -->
         <div class="col-md-8">
             <div class="card">
                 <div class="card-body">
@@ -57,132 +61,158 @@
                 </div>
             </div>
         </div>
-
-        <!-- Prioridades -->
         <div class="col-md-4">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Prioridades</h5>
+                    <h5 class="card-title">Distribuição por Prioridade</h5>
                     <canvas id="prioridadeChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Terceira Linha -->
-    <div class="row">
-        <!-- Produtividade por Operador -->
+    <!-- Terceira Linha: Operadores e Tipos -->
+    <div class="row mb-4">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Produtividade por Operador</h5>
+                    <h5 class="card-title">Atendimentos por Operador</h5>
                     <canvas id="operadorChart"></canvas>
                 </div>
             </div>
         </div>
-
-        <!-- Categorias -->
         <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Categorias</h5>
-                    <canvas id="categoriaChart"></canvas>
+                    <h5 class="card-title">Tipos de Chamados</h5>
+                    <canvas id="tipoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quarta Linha: Tempo Médio de Resolução -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Tempo Médio de Resolução por Dia</h5>
+                    <canvas id="tempoResolucaoChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// SLA Chart
-new Chart(document.getElementById('slaChart'), {
-    type: 'doughnut',
-    data: {
-        labels: ['Dentro do SLA', 'Fora do SLA'],
-        datasets: [{
-            data: [{{ sla_data.dentro }}, {{ sla_data.fora }}],
-            backgroundColor: ['#4CAF50', '#F44336']
-        }]
-    }
-});
-
-// Tendência Chart
-new Chart(document.getElementById('tendenciaChart'), {
-    type: 'line',
-    data: {
-        labels: {{ tendencia_data.datas|safe }},
-        datasets: [{
-            label: 'Chamados Abertos',
-            data: {{ tendencia_data.abertos|safe }},
-            borderColor: '#2196F3',
-            fill: false
-        }, {
-            label: 'Chamados Fechados',
-            data: {{ tendencia_data.fechados|safe }},
-            borderColor: '#4CAF50',
-            fill: false
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
+document.addEventListener('DOMContentLoaded', function() {
+    // Tendência Chart
+    new Chart(document.getElementById('tendenciaChart'), {
+        type: 'line',
+        data: {
+            labels: {{ tendencia_data.datas|safe }},
+            datasets: [{
+                label: 'Chamados Abertos',
+                data: {{ tendencia_data.abertos|safe }},
+                borderColor: '#2196F3',
+                fill: false
+            }, {
+                label: 'Chamados Fechados',
+                data: {{ tendencia_data.fechados|safe }},
+                borderColor: '#4CAF50',
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
-    }
-});
+    });
 
-// Prioridade Chart
-new Chart(document.getElementById('prioridadeChart'), {
-    type: 'pie',
-    data: {
-        labels: {{ prioridade_labels|safe }},
-        datasets: [{
-            data: {{ prioridade_data|safe }},
-            backgroundColor: ['#F44336', '#FF9800', '#FFC107', '#4CAF50']
-        }]
-    }
-});
+    // Prioridade Chart
+    new Chart(document.getElementById('prioridadeChart'), {
+        type: 'pie',
+        data: {
+            labels: {{ prioridade_labels|safe }},
+            datasets: [{
+                data: {{ prioridade_data|safe }},
+                backgroundColor: ['#F44336', '#FF9800', '#FFC107', '#4CAF50']
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
 
-// Operador Chart
-new Chart(document.getElementById('operadorChart'), {
-    type: 'bar',
-    data: {
-        labels: {{ operador_labels|safe }},
-        datasets: [{
-            label: 'Chamados Atendidos',
-            data: {{ operador_data|safe }},
-            backgroundColor: '#2196F3'
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
+    // Operador Chart
+    new Chart(document.getElementById('operadorChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ operador_labels|safe }},
+            datasets: [{
+                label: 'Chamados Atendidos',
+                data: {{ operador_data|safe }},
+                backgroundColor: '#2196F3'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
-    }
-});
+    });
 
-// Categoria Chart
-new Chart(document.getElementById('categoriaChart'), {
-    type: 'bar',
-    data: {
-        labels: {{ categoria_labels|safe }},
-        datasets: [{
-            label: 'Quantidade',
-            data: {{ categoria_data|safe }},
-            backgroundColor: '#9C27B0'
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
+    // Tipo Chart
+    new Chart(document.getElementById('tipoChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ tipo_labels|safe }},
+            datasets: [{
+                label: 'Quantidade',
+                data: {{ tipo_data|safe }},
+                backgroundColor: '#9C27B0'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
             }
         }
-    }
+    });
+
+    // Tempo Médio de Resolução Chart
+    new Chart(document.getElementById('tempoResolucaoChart'), {
+        type: 'line',
+        data: {
+            labels: Object.keys({{ tempo_medio_por_dia|safe }}),
+            datasets: [{
+                label: 'Tempo Médio (horas)',
+                data: Object.values({{ tempo_medio_por_dia|safe }}),
+                borderColor: '#FF5722',
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 });
 </script>
-{% endblock %} 
+{% endblock content %} 
