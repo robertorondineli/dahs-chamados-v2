@@ -11,104 +11,60 @@ def home(request):
         if not relatorio:
             return redirect('adicionar_relatorio')
         
-        # Debug - Mostrar estrutura dos dados
-        print("\n=== ESTRUTURA DOS DADOS ===")
-        print("Tipo:", type(relatorio.dados))
-        print("Chaves:", relatorio.dados.keys() if isinstance(relatorio.dados, dict) else "Não é um dicionário")
-        print("Conteúdo:", relatorio.dados)
-        print("==========================\n")
-        
         dados = relatorio.dados
         
-        # Se os dados estiverem em uma chave específica do dicionário
-        if isinstance(dados, dict):
-            # Tenta diferentes possíveis chaves onde os chamados podem estar
-            items = (dados.get('Registros') or 
-                    dados.get('registros') or 
-                    dados.get('Chamados') or 
-                    dados.get('chamados') or 
-                    dados.get('Data') or 
-                    dados.get('data') or 
-                    dados.get('Items') or 
-                    dados.get('items') or
-                    [])
+        # Os chamados estão dentro da chave 'root'
+        if isinstance(dados, dict) and 'root' in dados:
+            items = dados['root']
             
-            print("\n=== ITEMS ENCONTRADOS ===")
-            print("Tipo dos items:", type(items))
+            print("\n=== DADOS DO RELATÓRIO ===")
+            print("Total de chamados:", len(items))
             if items:
-                print("Primeiro item:", items[0])
-            else:
-                print("Nenhum item encontrado")
-            print("========================\n")
+                print("Exemplo do primeiro chamado:", items[0])
+            print("==========================\n")
+            
+            status_count = Counter()
+            categoria_count = Counter()
+            prioridade_count = Counter()
+            datas = set()
+            
+            for item in items:
+                # Ajustando para as chaves corretas do seu JSON
+                status = str(item.get('Status', 'Não definido'))
+                categoria = str(item.get('Categoria', 'Não definida'))
+                prioridade = str(item.get('Prioridade', 'Não definida'))
+                data = str(item.get('DataAbertura', '')).split('T')[0] if item.get('DataAbertura') else ''
+                
+                status_count[status] += 1
+                categoria_count[categoria] += 1
+                prioridade_count[prioridade] += 1
+                if data:
+                    datas.add(data)
+            
+            datas_disponiveis = sorted(list(datas)) if datas else []
+            data_selecionada = request.GET.get('data', datas_disponiveis[-1] if datas_disponiveis else None)
+            
+            # Adiciona informações do relatório ao contexto
+            contexto = {
+                'relatorio': relatorio,
+                'nome_relatorio': dados.get('NomeRelatorio', 'Relatório de Chamados'),
+                'total_registros': dados.get('total', 0),
+                'datas_disponiveis': datas_disponiveis,
+                'data_selecionada': data_selecionada,
+                'status_labels': list(status_count.keys()),
+                'status_data': list(status_count.values()),
+                'categoria_labels': list(categoria_count.keys()),
+                'categoria_data': list(categoria_count.values()),
+                'prioridade_labels': list(prioridade_count.keys()),
+                'prioridade_data': list(prioridade_count.values()),
+                'total_chamados': len(items)
+            }
+            
+            return render(request, 'relatorios/dashboard.html', contexto)
         else:
-            items = []
-        
-        if not items:
             return render(request, 'relatorios/error.html', {
                 'error': f'Nenhum chamado encontrado no relatório. Estrutura dos dados: {dados.keys() if isinstance(dados, dict) else type(dados)}'
             })
-        
-        status_count = Counter()
-        categoria_count = Counter()
-        prioridade_count = Counter()
-        datas = set()
-        
-        for item in items:
-            # Tenta diferentes chaves possíveis para cada campo
-            status = (
-                item.get('Status') or 
-                item.get('status') or 
-                item.get('StatusChamado') or 
-                'Não definido'
-            )
-            
-            categoria = (
-                item.get('Categoria') or 
-                item.get('categoria') or 
-                item.get('CategoriaChamado') or 
-                'Não definida'
-            )
-            
-            prioridade = (
-                item.get('Prioridade') or 
-                item.get('prioridade') or 
-                item.get('PrioridadeChamado') or 
-                'Não definida'
-            )
-            
-            data = (
-                item.get('DataAbertura') or 
-                item.get('dataAbertura') or 
-                item.get('Data') or 
-                ''
-            )
-            
-            if isinstance(data, str) and data:
-                data = data.split('T')[0] if 'T' in data else data.split(' ')[0]
-            
-            status_count[str(status)] += 1
-            categoria_count[str(categoria)] += 1
-            prioridade_count[str(prioridade)] += 1
-            if data:
-                datas.add(str(data))
-        
-        datas_disponiveis = sorted(list(datas)) if datas else []
-        data_selecionada = request.GET.get('data', datas_disponiveis[-1] if datas_disponiveis else None)
-        
-        contexto = {
-            'relatorio': relatorio,
-            'datas_disponiveis': datas_disponiveis,
-            'data_selecionada': data_selecionada,
-            'status_labels': list(status_count.keys()),
-            'status_data': list(status_count.values()),
-            'categoria_labels': list(categoria_count.keys()),
-            'categoria_data': list(categoria_count.values()),
-            'prioridade_labels': list(prioridade_count.keys()),
-            'prioridade_data': list(prioridade_count.values()),
-            'total_chamados': len(items)
-        }
-        
-        return render(request, 'relatorios/dashboard.html', contexto)
         
     except Exception as e:
         print(f"Erro ao processar dashboard: {str(e)}")
