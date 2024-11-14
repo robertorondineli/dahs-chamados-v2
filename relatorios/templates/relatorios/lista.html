@@ -1,25 +1,87 @@
 {% extends 'base/base.html' %}
 
 {% block content %}
-<div class="container">
-    <h2>Relatórios Importados</h2>
-    
-    <div class="row mt-4">
-        {% for relatorio in relatorios %}
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Relatório {{ relatorio.chave }}</h5>
-                    <p class="card-text">Importado em: {{ relatorio.data_importacao|date:"d/m/Y H:i" }}</p>
-                    <a href="{% url 'dashboard' relatorio.id %}" class="btn btn-primary">Ver Dashboard</a>
-                </div>
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group" role="group">
+                <a href="{% url 'home' %}" class="btn btn-primary">
+                    <i class="fas fa-chart-bar"></i> Dashboard
+                </a>
+                <a href="{% url 'adicionar_relatorio' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Adicionar Relatório
+                </a>
             </div>
         </div>
-        {% empty %}
-        <div class="col-12">
-            <p>Nenhum relatório importado ainda.</p>
-        </div>
-        {% endfor %}
     </div>
+
+    <h2>Lista de Relatórios</h2>
+
+    {% if relatorios %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Chave</th>
+                    <th>Data de Importação</th>
+                    <th>Total de Chamados</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for relatorio in relatorios %}
+                <tr>
+                    <td>{{ relatorio.id }}</td>
+                    <td><code>{{ relatorio.chave }}</code></td>
+                    <td>{{ relatorio.data_importacao|date:"d/m/Y H:i:s" }}</td>
+                    <td>
+                        {% if relatorio.dados.root %}
+                            <span class="badge bg-primary">{{ relatorio.dados.root|length }}</span>
+                        {% else %}
+                            <span class="badge bg-warning">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form action="{% url 'excluir_relatorio' relatorio.pk %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" 
+                                    onclick="return confirm('Tem certeza que deseja excluir este relatório?')">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Nenhum relatório encontrado.
+    </div>
+    {% endif %}
 </div>
+
+<style>
+    /* Estilo para a chave do relatório */
+    code {
+        background-color: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        color: #d63384;
+    }
+    
+    /* Estilo para o badge de total de chamados */
+    .badge {
+        font-size: 0.9em;
+        padding: 6px 10px;
+    }
+    
+    /* Melhora o espaçamento da tabela */
+    .table td, .table th {
+        vertical-align: middle;
+    }
+</style>
 {% endblock %} 
